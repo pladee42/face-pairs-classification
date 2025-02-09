@@ -1,0 +1,240 @@
+\documentclass[a4paper]{article}
+
+\usepackage{INTERSPEECH2022}
+\usepackage{graphicx}
+\usepackage{tabularx} % Add this to your preamble if not already included
+
+% Replace the title below with something more specific if you wish
+\title{Face Recognition via Pair Matching}
+
+% Replace the 'ac1jpb' with your username
+\name{liq23wr}
+
+% Please do not use your actual name. We prefer to mark work anonymously.
+
+\address{University of Sheffield}
+
+\begin{document}
+
+\maketitle
+
+% Lines starting with a percent symbol are comments.
+%
+% The text in this paper is just dummy text so that you can get an idea of what the final report will look like. Delete it and replace it with your report's content.
+%
+% The final paper should not be any longer than 2-sides of A4.
+% The word count is not expected to be more than 1200 words.
+
+\begin{abstract}
+   % The text for your abstract goes here. The abstract should summarise the paper and be no more than about 100 words
+    This paper presents a face verification system that classifies whether two images belong to the same person. The system uses data augmentation, Principal Component Analysis (PCA) for dimensionality reduction, and a stacking ensemble model of SVC, MLP, and GBC. The system achieves an accuracy of \textbf{69.8\%} on the evaluation dataset, outperforming the baseline model. The report covers the methodology, hyperparameter optimization, results, and future improvements.
+
+
+\end{abstract}
+
+\section{Introduction}
+
+% The introduction should briefly describe the face verification problem
+% that you are trying to solve.
+%
+% End the introduction by providing a short overview of the rest of the report.
+
+    Face verification determines whether two images represent the same person, with applications in security and identity verification. This task is challenging due to variations in lighting, pose, and expression. 
+
+    The system uses data preprocessing, augmentation, PCA, and a stacking ensemble model to improve accuracy. 
+
+    The report is organized as follows: Section 2 outlines the system architecture. Section 3 describes the experiments and hyperparameter tuning. Section 4 presents evaluation results, followed by an analysis of performance in Section 5. Section 6 concludes with suggestions for future improvements.
+
+\section{System Description}
+
+% This section should describe your complete system in detail.
+% Try and describe it in sufficient detail such that other can replicate your results.
+% The complete system includes all the steps from inputting the image-pair to get out the classification result, i.e., it will include all the steps in your processing pipeline.
+% In particular, highlight any hyper-parameters that you will tune when you run your experiments.
+
+This system includes data preprocessing, augmentation, and ensemble classification. Below is a brief overview of the system:
+
+\subsection{Input Processing}
+Each image pair is reshaped into grayscale images of $62 \times 47$ pixels and concatenated into a single image of size $62 \times 94$ for further processing.
+
+\subsection{Data Augmentation}
+To improve generalization, the system applies several augmentations, including horizontal flips, brightness and contrast adjustments, sharpness, and Gaussian blur. The augmentation ratio is optimized experimentally, as discussed in the \textbf{Experiments} section.
+
+\subsection{Dimensionality Reduction}
+PCA reduces dimensionality while maintaining variance. Experimentation showed that \(n=70\) components worked best for performance and efficiency.
+
+\subsection{Model Training}
+The system employs an ensemble of classifiers combined into a stacking model:
+\begin{itemize}
+    \item \textbf{Base Models:}
+    \begin{itemize}
+        \item \textbf{Support Vector Classifier (SVC):} A non-linear classifier with a radial basis function (RBF) kernel.
+        \item \textbf{Multi-Layer Perceptron (MLPClassifier):} A feed-forward neural network optimized for classification.
+        \item \textbf{Gradient Boosting Classifier (GBC):} A tree-based ensemble model.
+    \end{itemize}
+    \item \textbf{Stacking Ensemble\cite{aug02}:} Predictions from the base models are combined using a \textbf{Logistic Regression} meta-classifier.
+\end{itemize}
+
+\subsection{Pipeline and Output}
+The final system is encapsulated in a \textbf{scikit-learn Pipeline}, which streamlines the testing and deployment process. The pipeline includes:
+\begin{itemize}
+    \item Preprocessing (image reshaping and flattening)
+    \item Scaling (using \textit{StandardScaler})
+    \item Dimensionality Reduction (via PCA)
+    \item Classification (using the stacking ensemble)
+\end{itemize}
+It outputs a binary classification: Class $1$ for the same person, Class $0$ for different persons.
+
+\section{Experiments}
+
+% Describe the experiments that you have conducted to optimise the performance of your system.
+% For example,
+%  - How did you choose the best training data.
+%  - How did you optimise your systems hyperparameters.
+%  - How did you ensure that you didn't exceed the allowed model size.
+% You can include results in this section, e.g. results obtained when trying different hyper-parameter settings.
+
+Key areas of experimentation included the optimization of the augmentation ratio, hyperparameter tuning for the classifiers, and ensuring compliance with the model size constraint.
+
+\subsection{Augmentation Ratio Optimization}
+The \textbf{augmentation ratio} was systematically varied between \(0.2\) and \(0.7\) to identify the optimal value. This ratio is crucial:
+\begin{itemize}
+    \item \textbf{If too low:} The dataset may not have sufficient diversity, leading to poor generalization\cite{aug01}.
+    \item \textbf{If too high:} The model may become over-reliant on augmented data, reducing its accuracy on real, unaugmented test data\cite{aug01}.
+\end{itemize}
+
+Each ratio was tested using a Multi-Layer Perceptron (MLPClassifier) with 5-fold cross-validation. Table~\ref{tab:aug_results} shows the Cross-Validated accuracy at different augmentation ratios, with \(0.5\) achieving the best balance.
+
+\begin{table}[h]
+    \centering
+    \caption{Effect of Augmentation Ratio on Cross-Validated Accuracy}
+    \label{tab:aug_results}
+    \begin{tabular}{cc}
+        \hline
+        \textbf{Augmentation Ratio} & \textbf{Cross-Validated Accuracy (\%)} \\
+        \hline
+        0.2 & 80.6 \\
+        0.3 & 83.8 \\
+        0.4 & 85.4 \\
+        0.5 & \textbf{86.8} \\
+        0.6 & 85.6 \\
+        0.7 & 85.2 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Hyperparameter Optimization}
+The next step involved optimizing the hyperparameters for dimensionality reduction and classifier training:
+\begin{itemize}
+    \item \textbf{Dimensionality Reduction:} Principal Component Analysis (PCA) was used to reduce the high-dimensional input space. The number of components (\(n\)) was varied from 65 to 100, with \(n=70\) providing the highest accuracy (Table~\ref{tab:pca_results}).
+\end{itemize}
+
+\begin{table}[h]
+    \centering
+    \caption{Effect of PCA Components on Cross-Validated Accuracy}
+    \label{tab:pca_results}
+    \begin{tabular}{cc}
+        \hline
+        \textbf{Number of Components} & \textbf{Cross-Validated Accuracy (\%)} \\
+        \hline
+        65 & 87.6 \\
+        70 & \textbf{88.6} \\
+        75 & 88.5 \\
+        80 & 88.4 \\
+        85 & 88.1 \\
+        90 & 88.2 \\
+        95 & 88.1 \\
+        100 & 88.2 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{itemize}
+    \item \textbf{Classifier Hyperparameters:} Each base model in the stacking ensemble was tuned using \textit{RandomizedSearchCV} with 5-fold cross-validation. Key parameters explored included:
+    \begin{itemize}
+        \item \textbf{SVC:} Regularization parameter (\(C\)) and kernel coefficient (\(\gamma\)).
+        \item \textbf{MLPClassifier:} Hidden layer sizes, activation functions, and regularization parameter (\(\alpha\)).
+        \item \textbf{Gradient Boosting Classifier (GBC):} Learning rate, number of estimators, and maximum depth.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Model Size Optimization}
+To ensure compliance with the 80 MB size constraint, the following measures were implemented:
+\begin{itemize}
+    \item \textbf{Dimensionality Reduction:} PCA effectively reduced the size of intermediate data representations.
+    \item \textbf{Ensemble Size:} The stacking classifier used only three base models to maintain compactness without sacrificing performance.
+\end{itemize}
+The final model size was approximately 27 MB, well within the allowed limit.
+
+
+\section{Results and Analysis}
+
+% Here you should report the results obtained on the evaluation data with your final system.
+%
+% You can also analyse the performance. For example, you may want to look at cases where it is failing
+% and try to understand the conditions that lead to these failures.
+
+\subsection{Evaluation Results}
+The final system achieved an accuracy of \textbf{69.8\%} on the evaluation dataset, significantly outperforming the baseline model's accuracy of \textbf{56.3\%}. Table~\ref{tab:eval_results} summarizes the results.
+
+\begin{table}[h]
+    \centering
+    \caption{Evaluation Results on the Test Dataset}
+    \label{tab:eval_results}
+    \begin{tabular}{ccc}
+        \hline
+        \textbf{Model} & \textbf{Accuracy (\%)} & \textbf{Improvement (\%)} \\
+        \hline
+        Baseline Model & 56.3 & - \\
+        Final System & 69.8 & +13.5 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Confusion Matrix}
+The confusion matrix for the final system is shown in Table~\ref{tab:confusion_matrix}, based on the provided values:
+
+\begin{table}[h]
+    \centering
+    \caption{Confusion Matrix for the Final System}
+    \label{tab:confusion_matrix}
+    \renewcommand{\arraystretch}{1.5} % Adjust row height for better vertical spacing
+    \begin{tabular}{|>{\centering\arraybackslash}m{2.5cm}|>{\centering\arraybackslash}m{2cm}|>{\centering\arraybackslash}m{2cm}|}
+        \hline
+        \textbf{Predicted} & \textbf{Same \newline Person (1)} & \textbf{Different \newline  Person (0)} \\ \hline
+        \textbf{True  Same \newline Person (1)} & 357 & 143 \\ \hline
+        \textbf{True  Different \newline Person (0)} & 159 & 341 \\ \hline
+    \end{tabular}
+\end{table}
+
+Where:
+\begin{itemize}
+    \item \textbf{True Positives (TP)}: 357 same-class pairs correctly identified as "same".
+    \item \textbf{True Negatives (TN)}: 341 different-class pairs correctly identified as "different".
+    \item \textbf{False Positives (FP)}: 159 different-class pairs incorrectly identified as "same".
+    \item \textbf{False Negatives (FN)}: 143 same-class pairs incorrectly identified as "different".
+\end{itemize}
+
+\subsection{Failure Analysis}
+Misclassifications were analyzed to understand the limitations:
+\begin{itemize}
+    \item \textbf{Low-Quality Images:} Blurred or noisy images often led to false negatives.
+    \item \textbf{Pose and Occlusion Variability:} Extreme pose differences or occlusions like sunglasses and hats caused false positives.
+    \item \textbf{Subtle Differences:} Small variations in same-class pairs, such as lighting or aging, occasionally led to errors.
+\end{itemize}
+
+\section{Discussion and Conclusions}
+
+% Briefly discuss your results and summarise conclusions.
+% e.g., How well did the verification system work? How much impact did the sub-image size have on performance? How sensitive was the performance to hyperparameter tuning? If you had more time, what could be done to further increase performance?
+The system achieved \textbf{69.8\%} accuracy, significantly outperforming the baseline model. The system's performance was sensitive to hyperparameters, particularly the augmentation ratio and PCA components, with \(0.5\) augmentation ratio and \(n=70\) components performing best.
+
+Future work could focus on expanding augmentation methods, exploring deep learning-based feature extraction, and refining hyperparameter tuning to improve generalization and robustness.
+
+In conclusion, the system demonstrates strong performance, but addressing limitations related to pose variability and subtle facial differences could further improve its robustness in real-world applications.
+
+% Do not touch any lines below here
+\bibliographystyle{IEEEtran}
+\bibliography{mybib}
+
+\end{document}

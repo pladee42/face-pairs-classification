@@ -1,15 +1,15 @@
-# Image Augmentation and Model Training Pipeline
+# Face Verification via Pair Matching
 
-This repository contains code to preprocess and augment image data, train machine learning models, and evaluate their performance. The pipeline includes data transformation, augmentation, hyperparameter tuning, PCA (Principal Component Analysis), and model stacking to achieve high accuracy.
+This repository implements a face verification system that classifies whether two images belong to the same person. The system uses data augmentation, Principal Component Analysis (PCA) for dimensionality reduction, and a stacking ensemble model of Support Vector Classifier (SVC), Multi-Layer Perceptron (MLP), and Gradient Boosting Classifier (GBC) to achieve high accuracy.
 
 ## Features
 
-- **Image Augmentation:** Apply multiple augmentation techniques (e.g., flips, brightness/contrast adjustments, blurs, and edge enhancements) to the dataset, improving model robustness.
-- **PCA Optimization:** Perform PCA to reduce dimensionality and find the best number of components for the model.
-- **Model Stacking:** Use a stacking classifier with `SVC`, `MLPClassifier`, and `GradientBoostingClassifier` to combine multiple models for better performance.
-- **Hyperparameter Tuning:** Use `RandomizedSearchCV` to find optimal parameters for the models.
-- **Cross-validation:** Apply cross-validation to evaluate the models and prevent overfitting.
-- **Model Evaluation:** Evaluate the performance of a trained model on a separate test dataset (`eval1.joblib`).
+- **Face Verification:** Classifies whether two images represent the same person.
+- **Data Augmentation:** Includes techniques like horizontal flips, brightness/contrast adjustments, sharpness, and Gaussian blur to improve generalization.
+- **PCA (Principal Component Analysis):** Reduces dimensionality of the input data for improved performance and efficiency.
+- **Model Stacking:** Combines predictions from SVC, MLP, and GBC classifiers using a Logistic Regression meta-classifier.
+- **Cross-Validation & Hyperparameter Tuning:** Optimizes hyperparameters using `RandomizedSearchCV` with 5-fold cross-validation.
+- **Model Evaluation:** Evaluates the trained model on a separate test dataset (`eval1.joblib`).
 
 ## Prerequisites
 
@@ -85,27 +85,18 @@ This command will load the model from `model.joblib`, evaluate it on the `eval1.
 
 **Note:** The `eval1.joblib` dataset must be present in the `data/` directory for evaluation to work.
 
-## Pipeline Steps
+## System Overview
 
-1. **Data Transformation:**
-   - Reshape the input data.
-   - Apply augmentation (if enabled).
-   - Normalize the images and reshape them back into 2D arrays.
+1. **Input Processing:** Each image pair is reshaped into grayscale images of size 62x47 pixels and concatenated into a single image of size 62x94 for further processing.
+2. **Data Augmentation:** Augmentations such as horizontal flips, brightness/contrast adjustments, and Gaussian blur are applied. The optimal augmentation ratio is 0.5.
+3. **Dimensionality Reduction:** PCA is applied to reduce the input data dimensionality, with 70 components providing the best results.
+4. **Model Stacking:** The system uses a stacking classifier consisting of:
+   - SVC (Support Vector Classifier)
+   - MLP (Multi-Layer Perceptron)
+   - GBC (Gradient Boosting Classifier)
+   The outputs from the base models are combined using a Logistic Regression meta-classifier.
 
-2. **PCA and Scaling:**
-   - Apply PCA for dimensionality reduction.
-   - Standardize the data using `StandardScaler`.
+## Results
 
-3. **Model Training:**
-   - Train the following models using `RandomizedSearchCV`:
-     - `SVC` (Support Vector Classifier)
-     - `MLPClassifier` (Multilayer Perceptron)
-     - `GradientBoostingClassifier`
-   - Stack the best models into a final ensemble model.
-
-4. **Model Saving:**
-   - The trained model is saved as a `joblib` pipeline for future use.
-
-## Model Evaluation
-
-The script uses **StratifiedKFold cross-validation** to evaluate the performance of each model with different augmentation ratios and PCA components. The best augmentation ratio and PCA components are selected based on cross-validated accuracy.
+- **Accuracy:** The final system achieved an accuracy of **69.8%** on the evaluation dataset, outperforming the baseline model's accuracy of **56.3%**.
+- **Confusion Matrix:** The model correctly identified 357 same-class pairs and 341 different-class pairs, with errors in subtle image differences or occlusions.
